@@ -22,6 +22,11 @@ SIMPLE_JWT = {
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+import os
+BASE_DIR1 = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = os.path.join(BASE_DIR1, 'media')
 
 
 # Quick-start development settings - unsuitable for production
@@ -48,6 +53,7 @@ INSTALLED_APPS = [
     'customer',
     'rest_framework',
     'corsheaders',
+    'mobile'
 ]
 
 MIDDLEWARE = [
@@ -99,11 +105,11 @@ DATABASES = {
     },
     'mongodb': {
         'ENGINE': 'djongo',  # Sử dụng djongo để kết nối MongoDB
-        'NAME': 'restapi',
+        'NAME': 'prj2',
     }
 }
 
-DATABASE_ROUTERS = ['prj2.dbrouters.CustomerRouter']
+DATABASE_ROUTERS = ['prj2.dbrouters.CustomerRouter', 'prj2.dbrouters.MobileRouter',]
 
 
 # Password validation
