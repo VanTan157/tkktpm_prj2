@@ -30,6 +30,7 @@ urlpatterns = [
     # Làm mới token
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/', include('mobile.urls')),
+    path('api/', include('cart.urls')),
 
 ]
 

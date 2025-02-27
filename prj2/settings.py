@@ -53,7 +53,8 @@ INSTALLED_APPS = [
     'customer',
     'rest_framework',
     'corsheaders',
-    'mobile'
+    'mobile',
+    'cart'
 ]
 
 MIDDLEWARE = [
@@ -106,10 +107,18 @@ DATABASES = {
     'mongodb': {
         'ENGINE': 'djongo',  # Sử dụng djongo để kết nối MongoDB
         'NAME': 'prj2',
+    },
+    'postgresql': {
+        'ENGINE': 'django.db.backends.postgresql',  # Engine cho PostgreSQL
+        'NAME': 'prj2',                     # Tên database PostgreSQL
+        'USER': 'postgres',                # Thay bằng user PostgreSQL của bạn
+        'PASSWORD': '1234567',       # Thay bằng password PostgreSQL của bạn
+        'HOST': '127.0.0.1',              # Thường là localhost nếu chạy local
+        'PORT': '5432',                   # Port mặc định của PostgreSQL
     }
 }
 
-DATABASE_ROUTERS = ['prj2.dbrouters.CustomerRouter', 'prj2.dbrouters.MobileRouter',]
+DATABASE_ROUTERS = ['prj2.dbrouters.DBRouter',]
 
 
 # Password validation
