@@ -6,7 +6,7 @@ from mobile.models import Mobile
 
 class CartSerializer(serializers.ModelSerializer):
     customer_id = serializers.IntegerField()
-    items = serializers.JSONField()
+    items = serializers.JSONField()  # Vẫn là JSONField, nhưng chứa danh sách các object
 
     class Meta:
         model = Cart
@@ -22,14 +22,27 @@ class CartSerializer(serializers.ModelSerializer):
     def validate_items(self, value):
         if not isinstance(value, list):
             raise serializers.ValidationError("Items phải là một danh sách.")
+
         for item in value:
-            if not isinstance(item, str):
-                raise serializers.ValidationError("Mỗi item phải là một chuỗi mobile_id.")
+            # Kiểm tra xem item có phải là dict và có các trường cần thiết không
+            if not isinstance(item, dict) or 'mobile_id' not in item or 'quantity' not in item:
+                raise serializers.ValidationError("Mỗi item phải là một object chứa 'mobile_id' và 'quantity'.")
+            
+            mobile_id = item['mobile_id']
+            quantity = item['quantity']
+
+            # Kiểm tra mobile_id
+            if not isinstance(mobile_id, str):
+                raise serializers.ValidationError("mobile_id phải là một chuỗi.")
             try:
-                # Chuyển đổi chuỗi thành ObjectId
-                mobile_id = ObjectId(item)
-                if not Mobile.objects.using('mongodb').filter(_id=mobile_id).exists():
-                    raise serializers.ValidationError(f"Mobile với ID {item} không tồn tại.")
+                mobile_id_obj = ObjectId(mobile_id)
+                if not Mobile.objects.using('mongodb').filter(_id=mobile_id_obj).exists():
+                    raise serializers.ValidationError(f"Mobile với ID {mobile_id} không tồn tại.")
             except ValueError:
-                raise serializers.ValidationError(f"ID {item} không phải là ObjectId hợp lệ.")
+                raise serializers.ValidationError(f"ID {mobile_id} không phải là ObjectId hợp lệ.")
+
+            # Kiểm tra quantity
+            if not isinstance(quantity, int) or quantity <= 0:
+                raise serializers.ValidationError("quantity phải là một số nguyên dương.")
+
         return value

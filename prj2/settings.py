@@ -170,3 +170,8 @@ REST_FRAMEWORK = {
         'rest_framework.permissions.IsAuthenticated',
     ),
 }
+
+SIMPLE_JWT = {
+    'USER_ID_FIELD': 'id',  # Khớp với trường id trong Customer
+    'USER_ID_CLAIM': 'user_id',  # Tên trường trong token
+}

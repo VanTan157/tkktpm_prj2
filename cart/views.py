@@ -5,8 +5,13 @@ from mobile.models import Mobile
 from .serializers import CartSerializer
 from decimal import Decimal
 from bson import ObjectId
+from rest_framework.permissions import IsAuthenticated
+from customer.permissions import IsAdminCustomer  # Import permission đã định nghĩa
+from customer.authentication import CustomerJWTAuthentication
 
 class CartViewSet(viewsets.ModelViewSet):
+    authentication_classes = [CustomerJWTAuthentication]  # Sử dụng JWT tùy chỉnh
+    permission_classes = [IsAuthenticated]
     queryset = Cart.objects.using('postgresql').all()
     serializer_class = CartSerializer
 
@@ -14,15 +19,20 @@ class CartViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        # Tính total_price từ mobile_id
+        # Tính total_price từ items
         items = serializer.validated_data.get('items', [])
         total_price = Decimal('0.00')
-        mobile = Mobile.objects.using('mongodb').filter(_id="67c08abd41bf0c095d48c858").first()
-        print(mobile)
         if items:
-            items = [ObjectId(item) for item in items]
-            mobiles = Mobile.objects.using('mongodb').filter(_id__in=items)
-            total_price = sum(Decimal(str(mobile.price)) for mobile in mobiles)
+            mobile_ids = [ObjectId(item['mobile_id']) for item in items]
+            mobiles = Mobile.objects.using('mongodb').filter(_id__in=mobile_ids)
+            # Tạo dictionary để tra cứu mobile theo _id
+            mobile_dict = {str(mobile._id): mobile for mobile in mobiles}
+            # Tính tổng giá dựa trên price và quantity
+            total_price = sum(
+                Decimal(str(mobile_dict[item['mobile_id']].price)) * Decimal(item['quantity'])
+                for item in items
+                if item['mobile_id'] in mobile_dict
+            )
 
         serializer.validated_data['total_price'] = total_price
         self.perform_create(serializer)
@@ -38,8 +48,14 @@ class CartViewSet(viewsets.ModelViewSet):
         items = serializer.validated_data.get('items', instance.items)
         total_price = Decimal('0.00')
         if items:
-            mobiles = Mobile.objects.using('mongodb').filter(_id__in=items)
-            total_price = sum(Decimal(str(mobile.price)) for mobile in mobiles)
+            mobile_ids = [ObjectId(item['mobile_id']) for item in items]
+            mobiles = Mobile.objects.using('mongodb').filter(_id__in=mobile_ids)
+            mobile_dict = {str(mobile._id): mobile for mobile in mobiles}
+            total_price = sum(
+                Decimal(str(mobile_dict[item['mobile_id']].price)) * Decimal(item['quantity'])
+                for item in items
+                if item['mobile_id'] in mobile_dict
+            )
 
         serializer.validated_data['total_price'] = total_price
         self.perform_update(serializer)
@@ -55,7 +71,25 @@ class CartViewSet(viewsets.ModelViewSet):
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
+    # def list(self, request, *args, **kwargs):
+    #     queryset = self.filter_queryset(self.get_queryset())
+    #     serializer = self.get_serializer(queryset, many=True)
+    #     return Response(serializer.data)
+    
     def list(self, request, *args, **kwargs):
+        print(f"User: {request.user}, Is Admin: {getattr(request.user, 'customer_type', None) == 'admin'}")
         queryset = self.filter_queryset(self.get_queryset())
+        user = request.user
+        is_admin = getattr(user, 'customer_type', None) == 'admin'
+        if is_admin:
+            customer_id = request.query_params.get('customer_id', None)
+            if customer_id is not None:
+                try:
+                    customer_id = int(customer_id)
+                    queryset = queryset.filter(customer_id=customer_id)
+                except ValueError:
+                    return Response({"detail": "customer_id phải là một số nguyên."}, status=400)
+        else:
+            queryset = queryset.filter(customer_id=user.id)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
